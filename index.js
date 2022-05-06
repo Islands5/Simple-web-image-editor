@@ -279,6 +279,94 @@ function getRGB(pixel, position) {
   return [pixel[position], pixel[position + 1], pixel[position + 2]];
 }
 
+document.getElementById("ruler").addEventListener("click", () => {
+  canvas.performWhileMouseDown(() => {
+    const image = new Image();
+    let x, y, position;
+
+    const onmousedown = ({ pageX, pageY }) => {
+      position = canvas.getPosition();
+      x = pageX - position.left;
+      y = pageY - position.top;
+      image.src = canvas.getOctetStream();
+    };
+
+    const onmousemove = ({ pageX, pageY }) => {
+      canvas.drawWithoutCommit((context) => {
+        const canvasSize = canvas.getSize();
+        context.drawImage(image, 0, 0, canvasSize.width, canvasSize.height);
+        context.beginPath();
+        context.moveTo(x, y);
+        context.lineTo(pageX - position.left, pageY - position.top);
+        context.stroke();
+        context.closePath();
+      });
+    };
+
+    return { onmousedown, onmousemove };
+  });
+});
+
+document.getElementById("protractor").addEventListener("click", () => {
+  canvas.performClick(() => {
+    const image = new Image();
+    let position;
+    const positions = [[0, 0], [0, 0], [0, 0]];
+    const isCommit = true;
+    let clickCnt = 0;
+    let mode = 0;
+
+    const onclick = ({ pageX, pageY }) => {
+      position = canvas.getPosition();
+      image.src = canvas.getOctetStream();
+
+      positions[mode] = [pageX - position.left, pageY - position.top]
+
+      canvas.drawWithoutCommit((context) => {
+        const canvasSize = canvas.getSize();
+        context.drawImage(image, 0, 0, canvasSize.width, canvasSize.height);
+
+        context.beginPath();
+        if(mode === 0) {
+          context.arc(...positions[mode], 2, 0, Math.PI * 2, false);
+          context.fill();
+        }else if(mode === 1) {
+          context.moveTo(...positions[mode - 1]);
+          context.lineTo(...positions[mode]);
+        }else{
+          context.moveTo(...positions[mode - 1]);
+          context.lineTo(...positions[mode]);
+
+          context.font = "48px serif";
+          context.fillText(Math.floor(getAngle(positions)), ...positions[1]);
+        }
+        context.closePath();
+        context.stroke();
+      });
+
+      clickCnt++;
+      mode = clickCnt % 3
+
+      if(mode === 0) {
+        return isCommit
+      }else{
+        return !isCommit
+      }
+    };
+
+    return { onclick };
+  });
+});
+
+function getAngle(positions) {
+  const aVec = [positions[0][0] - positions[1][0], positions[0][1] - positions[1][1]]
+  const bVec = [positions[2][0] - positions[1][0], positions[2][1] - positions[1][1]]
+  const aVecSize = Math.sqrt(Math.pow(aVec[0], 2) + Math.pow(aVec[1], 2))
+  const bVecSize = Math.sqrt(Math.pow(bVec[0], 2) + Math.pow(bVec[1], 2))
+
+  return Math.acos((aVec[0] * bVec[0] + aVec[1] * bVec[1]) / (aVecSize * bVecSize)) * (180 / Math.PI)
+}
+
 // History buttons
 document
   .getElementById("redoButton")

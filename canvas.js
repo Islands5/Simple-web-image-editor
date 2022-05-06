@@ -127,6 +127,20 @@ function makeCanvas() {
       };
     },
     /**
+     * Performs mouse events on the canvas while the mouse is down.
+     * Commits changes to the history once the mouse is released.
+     * @param {callback} action return mouse events to be performed on the canvas
+     */
+    performClick(action) {
+      const { onclick } = action();
+      canvasEl.onclick = (e) => {
+        const isCommit = onclick?.(e);
+        if(isCommit) {
+          this.commitDraw();
+        }
+      };
+    },
+    /**
      * Modifies the canvas pixels using the given transformation.
      * @param {callback} pixelTransformation receives the pixel data to mutate in place
      */
