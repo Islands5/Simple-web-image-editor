@@ -280,30 +280,51 @@ function getRGB(pixel, position) {
 }
 
 document.getElementById("ruler").addEventListener("click", () => {
-  canvas.performWhileMouseDown(() => {
+  canvas.performClick(() => {
     const image = new Image();
-    let x, y, position;
+    let position;
+    const positions = [[0, 0], [0, 0], [0, 0]];
+    const isCommit = true;
+    let clickCnt = 0;
+    let mode = 0;
 
-    const onmousedown = ({ pageX, pageY }) => {
+    const onclick = ({ pageX, pageY }) => {
       position = canvas.getPosition();
-      x = pageX - position.left;
-      y = pageY - position.top;
       image.src = canvas.getOctetStream();
-    };
 
-    const onmousemove = ({ pageX, pageY }) => {
+      positions[mode] = [pageX - position.left, pageY - position.top]
+
       canvas.drawWithoutCommit((context) => {
         const canvasSize = canvas.getSize();
         context.drawImage(image, 0, 0, canvasSize.width, canvasSize.height);
+
         context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(pageX - position.left, pageY - position.top);
-        context.stroke();
+        if(mode === 0) {
+          context.arc(...positions[mode], 2, 0, Math.PI * 2, false);
+          context.fill();
+        }else if(mode === 1) {
+          context.moveTo(...positions[mode - 1]);
+          context.lineTo(...positions[mode]);
+
+          context.font = "24px serif";
+          const middlePoint = [(positions[0][0] + positions[1][0])/2, (positions[0][1] + positions[1][1])/2]
+          context.fillText(Math.floor(getDistance(positions)), ...middlePoint);
+        }
         context.closePath();
+        context.stroke();
       });
+
+      clickCnt++;
+      mode = clickCnt % 2
+
+      if(mode === 0) {
+        return isCommit
+      }else{
+        return !isCommit
+      }
     };
 
-    return { onmousedown, onmousemove };
+    return { onclick };
   });
 });
 
@@ -337,7 +358,7 @@ document.getElementById("protractor").addEventListener("click", () => {
           context.moveTo(...positions[mode - 1]);
           context.lineTo(...positions[mode]);
 
-          context.font = "48px serif";
+          context.font = "24px serif";
           context.fillText(Math.floor(getAngle(positions)), ...positions[1]);
         }
         context.closePath();
@@ -365,6 +386,10 @@ function getAngle(positions) {
   const bVecSize = Math.sqrt(Math.pow(bVec[0], 2) + Math.pow(bVec[1], 2))
 
   return Math.acos((aVec[0] * bVec[0] + aVec[1] * bVec[1]) / (aVecSize * bVecSize)) * (180 / Math.PI)
+}
+
+function getDistance(positions) {
+  return Math.sqrt(Math.pow(positions[0][0] - positions[1][0], 2) + Math.pow((positions[0][1] - positions[1][1]), 2));
 }
 
 // History buttons
